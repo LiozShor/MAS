@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gun-Wall Game — Simulation Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Gun-Wall Game Dashboard</h1>
+        <p class="subtitle">Strategic Adaptation under Partial Observability</p>
+    </header>
+
+    <nav class="tabs">
+        <button class="tab active" data-tab="simulation">Simulation</button>
+        <button class="tab" data-tab="replay">Game Replay</button>
+        <button class="tab" data-tab="policy">Policy Viz</button>
+    </nav>
+
+    <!-- ==================== SIMULATION TAB ==================== -->
+    <section id="tab-simulation" class="tab-content active">
+        <div class="controls">
+            <div class="control-group">
+                <label for="sim-p1">Player 1 Persona</label>
+                <select id="sim-p1"></select>
+            </div>
+            <div class="control-group">
+                <label for="sim-p2">Player 2 Persona</label>
+                <select id="sim-p2"></select>
+            </div>
+            <div class="control-group">
+                <label for="sim-n">Episodes</label>
+                <input id="sim-n" type="number" value="500" min="1" max="10000">
+            </div>
+            <button id="btn-simulate" class="btn-primary">Run Simulation</button>
+        </div>
+
+        <div id="sim-status" class="status-bar"></div>
+
+        <div class="charts-row">
+            <div class="chart-container">
+                <h3>Outcomes</h3>
+                <canvas id="chart-outcomes"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Average Scores</h3>
+                <canvas id="chart-scores"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Termination Round</h3>
+                <canvas id="chart-termination"></canvas>
+            </div>
+        </div>
+
+        <div id="sim-stats-table" class="stats-table"></div>
+    </section>
+
+    <!-- ==================== REPLAY TAB ==================== -->
+    <section id="tab-replay" class="tab-content">
+        <div class="controls">
+            <div class="control-group">
+                <label for="replay-ep">Episode #</label>
+                <select id="replay-ep"><option value="">Run simulation first</option></select>
+            </div>
+            <button id="btn-replay-prev" class="btn-secondary" disabled>&lt; Prev</button>
+            <button id="btn-replay-next" class="btn-secondary" disabled>Next &gt;</button>
+            <button id="btn-replay-reset" class="btn-secondary" disabled>Reset</button>
+        </div>
+
+        <div id="replay-info" class="replay-info">
+            <p>Run a simulation first, then select an episode to replay.</p>
+        </div>
+
+        <div class="replay-grid">
+            <div class="replay-panel">
+                <h3>Round Details</h3>
+                <div id="replay-round-detail"></div>
+            </div>
+            <div class="replay-panel">
+                <h3>Belief Evolution</h3>
+                <canvas id="chart-beliefs"></canvas>
+            </div>
+        </div>
+
+        <div class="replay-timeline" id="replay-timeline"></div>
+    </section>
+
+    <!-- ==================== POLICY VIZ TAB ==================== -->
+    <section id="tab-policy" class="tab-content">
+        <div class="controls">
+            <div class="control-group">
+                <label for="pol-persona">Persona</label>
+                <select id="pol-persona"></select>
+            </div>
+            <div class="control-group">
+                <label for="pol-player">Player</label>
+                <select id="pol-player">
+                    <option value="1">Player 1</option>
+                    <option value="2">Player 2</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="pol-ammo">Own Ammo</label>
+                <select id="pol-ammo">
+                    <option value="1">1 (Armed: S vs B)</option>
+                    <option value="0">0 (Unarmed: R vs B)</option>
+                </select>
+            </div>
+            <button id="btn-policy" class="btn-primary">Show Policy</button>
+        </div>
+
+        <div id="pol-status" class="status-bar"></div>
+
+        <div class="chart-container chart-wide">
+            <h3>Action Probability vs Belief <em>p</em> (opponent has ammo)</h3>
+            <canvas id="chart-policy"></canvas>
+        </div>
+    </section>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/simulation.js"></script>
+    <script src="/static/js/replay.js"></script>
+    <script src="/static/js/policy.js"></script>
+</body>
+</html>
