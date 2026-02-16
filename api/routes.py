@@ -71,6 +71,7 @@ def simulate():
     p2_name = data.get('persona2', 'balanced')
     n_episodes = data.get('n_episodes', 500)
     n_episodes = max(1, min(n_episodes, 10000))
+    include_episodes = data.get('include_episodes', True)
 
     cache_key = (p1_name, p2_name)
 
@@ -90,10 +91,13 @@ def simulate():
     # Store episodes for replay
     _last_episodes[cache_key] = episodes
 
-    return jsonify({
+    response = {
         'status': 'ok',
         'solver_iterations': solver_result['iterations'],
         'solver_converged': solver_result['converged'],
         'stats': stats,
-        'episodes': episodes,
-    })
+    }
+    if include_episodes:
+        response['episodes'] = episodes
+
+    return jsonify(response)

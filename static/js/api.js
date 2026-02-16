@@ -29,4 +29,8 @@ const API = {
     simulate(persona1, persona2, n_episodes) {
         return this.post('/api/simulate', { persona1, persona2, n_episodes });
     },
+
+    simulateStatsOnly(persona1, persona2, n_episodes) {
+        return this.post('/api/simulate', { persona1, persona2, n_episodes, include_episodes: false });
+    },
 };

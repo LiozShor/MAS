@@ -199,6 +199,60 @@ select:focus, input:focus {
     letter-spacing: 0.5px;
 }
 
+/* ===== Replay CTA Banner ===== */
+.replay-cta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    margin-top: 16px;
+    background: linear-gradient(135deg, rgba(108,92,231,0.15), rgba(0,184,148,0.10));
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    cursor: default;
+}
+.replay-cta-icon {
+    font-size: 2rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.replay-cta-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.replay-cta-text strong {
+    color: var(--accent-light);
+    font-size: 0.95rem;
+}
+.replay-cta-text span {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+}
+
+/* ===== Game Canvas ===== */
+.game-canvas-container {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+    text-align: center;
+}
+.game-canvas-container .btn-sound-toggle {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    padding: 4px 12px;
+}
+.game-canvas-container canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+}
+
 /* ===== Replay ===== */
 .replay-info {
     background: var(--surface);
@@ -303,8 +357,188 @@ select:focus, input:focus {
 .outcome-Continue { background: rgba(116,185,255,0.1); color: var(--blue); }
 .outcome-Draw { background: rgba(139,144,165,0.2); color: var(--text-dim); }
 
+/* ===== Experiment Tab ===== */
+.btn-small {
+    padding: 4px 12px;
+    font-size: 0.75rem;
+}
+
+.exp-matrix-section {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+}
+.exp-matrix-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+.exp-matrix-header h3 {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    font-weight: 500;
+    margin: 0;
+}
+.exp-matrix-hint {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    flex: 1;
+}
+.exp-matrix-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.exp-matrix-grid {
+    display: inline-block;
+}
+.exp-matrix-grid table {
+    border-collapse: collapse;
+}
+.exp-matrix-grid th,
+.exp-matrix-grid td {
+    padding: 6px 10px;
+    text-align: center;
+    font-size: 0.8rem;
+}
+.exp-matrix-grid th {
+    color: var(--text-dim);
+    font-weight: 500;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.exp-matrix-grid th.col-header {
+    padding-bottom: 8px;
+}
+.exp-matrix-grid th.row-header {
+    text-align: right;
+    padding-right: 12px;
+}
+.exp-matrix-grid td label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.exp-matrix-grid input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+/* Progress bar */
+.exp-progress {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+}
+.exp-progress-label {
+    font-size: 0.82rem;
+    color: var(--yellow);
+    margin-bottom: 8px;
+}
+.exp-progress-track {
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.exp-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* Heatmap */
+.exp-heatmap-container {
+    max-width: 600px;
+}
+.exp-heatmap table {
+    border-collapse: collapse;
+    width: 100%;
+}
+.exp-heatmap th,
+.exp-heatmap td {
+    padding: 10px 14px;
+    text-align: center;
+    font-size: 0.82rem;
+    border: 1px solid var(--border);
+}
+.exp-heatmap th {
+    color: var(--text-dim);
+    font-weight: 500;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    background: var(--surface2);
+}
+.exp-heatmap td {
+    border-radius: 0;
+    min-width: 90px;
+}
+.exp-heatmap .heatmap-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+.exp-heatmap .heatmap-main {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+.exp-heatmap .heatmap-sub {
+    font-size: 0.65rem;
+    opacity: 0.7;
+}
+.exp-heatmap .corner-label {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    line-height: 1.2;
+}
+
+/* Results row */
+.exp-results-row {
+    margin-bottom: 16px;
+}
+
+/* Summary table in experiments */
+#exp-summary-table {
+    margin-top: 16px;
+}
+#exp-summary-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+#exp-summary-table th,
+#exp-summary-table td {
+    padding: 8px 10px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8rem;
+}
+#exp-summary-table th {
+    color: var(--text-dim);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    letter-spacing: 0.3px;
+}
+#exp-summary-table td:first-child {
+    text-align: left;
+    font-weight: 500;
+}
+
 @media (max-width: 768px) {
     .charts-row { grid-template-columns: 1fr; }
     .replay-grid { grid-template-columns: 1fr; }
     .controls { flex-direction: column; align-items: stretch; }
+    .exp-matrix-header { flex-direction: column; align-items: flex-start; }
 }

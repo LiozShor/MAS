@@ -17,6 +17,7 @@
         <button class="tab active" data-tab="simulation">Simulation</button>
         <button class="tab" data-tab="replay">Game Replay</button>
         <button class="tab" data-tab="policy">Policy Viz</button>
+        <button class="tab" data-tab="experiment">Experiments</button>
     </nav>
 
     <!-- ==================== SIMULATION TAB ==================== -->
@@ -55,6 +56,15 @@
         </div>
 
         <div id="sim-stats-table" class="stats-table"></div>
+
+        <div id="sim-replay-cta" class="replay-cta" style="display:none">
+            <span class="replay-cta-icon">&#127918;</span>
+            <div class="replay-cta-text">
+                <strong>Watch the 2D Battle Replay</strong>
+                <span>Step through episodes with pixel-art animations and sound effects</span>
+            </div>
+            <button class="btn-primary" id="btn-goto-replay">Open Game Replay</button>
+        </div>
     </section>
 
     <!-- ==================== REPLAY TAB ==================== -->
@@ -72,6 +82,8 @@
         <div id="replay-info" class="replay-info">
             <p>Run a simulation first, then select an episode to replay.</p>
         </div>
+
+        <div class="game-canvas-container" id="game-canvas"></div>
 
         <div class="replay-grid">
             <div class="replay-panel">
@@ -119,10 +131,63 @@
         </div>
     </section>
 
+    <!-- ==================== EXPERIMENTS TAB ==================== -->
+    <section id="tab-experiment" class="tab-content">
+        <div class="controls">
+            <div class="control-group">
+                <label for="exp-n">Episodes per matchup</label>
+                <input id="exp-n" type="number" value="500" min="1" max="10000">
+            </div>
+            <button id="btn-run-experiment" class="btn-primary">Run Experiment</button>
+            <button id="btn-export-csv" class="btn-secondary" disabled>Export CSV</button>
+        </div>
+
+        <div class="exp-matrix-section">
+            <div class="exp-matrix-header">
+                <h3>Matchup Matrix</h3>
+                <span class="exp-matrix-hint">Select persona matchups to run</span>
+                <div class="exp-matrix-actions">
+                    <button id="btn-select-all" class="btn-secondary btn-small">Select All</button>
+                    <button id="btn-deselect-all" class="btn-secondary btn-small">Deselect All</button>
+                </div>
+            </div>
+            <div id="exp-matrix-grid" class="exp-matrix-grid"></div>
+        </div>
+
+        <div id="exp-progress" class="exp-progress" style="display:none">
+            <div class="exp-progress-label" id="exp-progress-label">Running...</div>
+            <div class="exp-progress-track">
+                <div class="exp-progress-fill" id="exp-progress-fill"></div>
+            </div>
+        </div>
+
+        <div id="exp-results" style="display:none">
+            <div class="exp-results-row">
+                <div class="chart-container exp-heatmap-container">
+                    <h3>P1 Win Rate Heatmap</h3>
+                    <div id="exp-heatmap"></div>
+                </div>
+            </div>
+            <div class="charts-row">
+                <div class="chart-container">
+                    <h3>Average Rewards</h3>
+                    <canvas id="chart-exp-rewards"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Avg Termination Round</h3>
+                    <canvas id="chart-exp-termination"></canvas>
+                </div>
+            </div>
+            <div id="exp-summary-table" class="stats-table"></div>
+        </div>
+    </section>
+
     <script src="/static/js/api.js"></script>
     <script src="/static/js/main.js"></script>
     <script src="/static/js/simulation.js"></script>
+    <script src="/static/js/game-canvas.js"></script>
     <script src="/static/js/replay.js"></script>
     <script src="/static/js/policy.js"></script>
+    <script src="/static/js/experiment.js"></script>
 </body>
 </html>

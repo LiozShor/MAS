@@ -4,13 +4,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Tab switching
     document.querySelectorAll('.tab').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-        });
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
+
+    // CTA button to jump to replay tab
+    document.getElementById('btn-goto-replay').addEventListener('click', () => switchTab('replay'));
 
     // Load personas into all dropdowns
     loadPersonas();
@@ -19,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadPersonas() {
     try {
         const personas = await API.getPersonas();
+        window.personas = personas;
         const selects = ['sim-p1', 'sim-p2', 'pol-persona'];
         selects.forEach(id => {
             const el = document.getElementById(id);
@@ -30,9 +29,20 @@ async function loadPersonas() {
                 el.appendChild(opt);
             });
         });
+        if (typeof initExperimentMatrix === 'function') {
+            initExperimentMatrix(personas);
+        }
     } catch (e) {
         console.error('Failed to load personas:', e);
     }
+}
+
+function switchTab(tabName) {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    const tabBtn = document.querySelector(`.tab[data-tab="${tabName}"]`);
+    if (tabBtn) tabBtn.classList.add('active');
+    document.getElementById('tab-' + tabName).classList.add('active');
 }
 
 function setStatus(elementId, text, type) {
