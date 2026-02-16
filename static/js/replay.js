@@ -6,10 +6,11 @@ let replayRound = 0;
 let beliefChart = null;
 
 document.addEventListener('DOMContentLoaded', () => {
+    GameCanvas.init('game-canvas');
     document.getElementById('replay-ep').addEventListener('change', loadEpisode);
     document.getElementById('btn-replay-prev').addEventListener('click', () => stepReplay(-1));
     document.getElementById('btn-replay-next').addEventListener('click', () => stepReplay(1));
-    document.getElementById('btn-replay-reset').addEventListener('click', () => { replayRound = 0; renderReplay(); });
+    document.getElementById('btn-replay-reset').addEventListener('click', () => { replayRound = 0; renderReplay(); GameCanvas.reset(); });
 });
 
 function loadEpisode() {
@@ -18,6 +19,7 @@ function loadEpisode() {
     if (isNaN(idx)) return;
     replayEpisode = lastSimResult.episodes[idx];
     replayRound = 0;
+    GameCanvas.reset();
     renderReplay();
     renderBeliefChart();
 
@@ -80,6 +82,9 @@ function renderReplay() {
             </div>
         </div>
     `;
+
+    // Animate the 2D game canvas
+    GameCanvas.playRoundTransition(r);
 
     // Timeline
     const timeline = document.getElementById('replay-timeline');
