@@ -126,8 +126,7 @@ def _compute_q(player, own_ammo, my_action, t, p, p_idx, opp_policy, V_next,
             g_me = g[0] if player == 1 else g[1]
 
             # Outcome payoff with persona weights
-            from engine.game import outcome_payoff as op_func
-            u_pay = op_func(o)
+            u_pay = outcome_payoff(o)
             u_me = u_pay[0] if player == 1 else u_pay[1]
 
             # Apply persona weights to outcome payoff
@@ -146,8 +145,6 @@ def _compute_q(player, own_ammo, my_action, t, p, p_idx, opp_policy, V_next,
             if not is_terminal(o):
                 # My next ammo
                 my_next_ammo = ammo_transition(own_ammo, my_action)
-                # Opponent's next ammo (deterministic given opp action)
-                opp_next_ammo = ammo_transition(opp_ammo, u_opp)
 
                 # Next belief: what probability mass goes to opp having ammo?
                 # We compute this inline for the solver (no actual observation needed)
@@ -166,7 +163,7 @@ def _compute_q(player, own_ammo, my_action, t, p, p_idx, opp_policy, V_next,
 
 
 def _solver_next_belief(p, own_ammo, my_action, opp_ammo, u_opp,
-                         opp_policy, t, player):
+                        opp_policy, t, player):
     """
     Compute the next belief for the solver during Q-value computation.
     Given that we're in a specific branch (opp_ammo, u_opp), the next

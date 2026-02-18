@@ -2,7 +2,6 @@
 Bayesian belief updates under partial observability.
 Handles likelihood computation, Bayes update, and belief propagation.
 """
-import numpy as np
 from config import BELIEF_GRID, DELTA
 from engine.game import legal_actions, outcome, ammo_transition
 
@@ -15,7 +14,7 @@ def snap_to_grid(p):
 
 
 def compute_likelihood(own_ammo, opp_ammo_hyp, my_action, observed_outcome,
-                        opp_policy, t, belief_p, player):
+                       opp_policy, t, belief_p, player):
     """
     Compute Pr(outcome | a_opp = opp_ammo_hyp, my_action, opp_policy).
 
@@ -53,15 +52,15 @@ def compute_likelihood(own_ammo, opp_ammo_hyp, my_action, observed_outcome,
 
 
 def bayes_update(prior_p, own_ammo, my_action, observed_outcome,
-                  opp_policy, t, player):
+                 opp_policy, t, player):
     """
     Bayesian posterior: P(a_opp=1 | prior, my_action, outcome).
     Returns the posterior probability that opponent has ammo.
     """
     lik_1 = compute_likelihood(own_ammo, 1, my_action, observed_outcome,
-                                opp_policy, t, prior_p, player)
+                               opp_policy, t, prior_p, player)
     lik_0 = compute_likelihood(own_ammo, 0, my_action, observed_outcome,
-                                opp_policy, t, prior_p, player)
+                               opp_policy, t, prior_p, player)
 
     numerator = lik_1 * prior_p
     denominator = lik_1 * prior_p + lik_0 * (1 - prior_p)
@@ -73,7 +72,7 @@ def bayes_update(prior_p, own_ammo, my_action, observed_outcome,
 
 
 def propagate_belief(prior_p, own_ammo, my_action, observed_outcome,
-                      opp_policy, t, player):
+                     opp_policy, t, player):
     """
     Propagate belief to the next round after observing Continue.
     Computes p_{t+1} = P(a_opp_next = 1 | history, my_action, outcome=Continue).

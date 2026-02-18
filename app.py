@@ -3,12 +3,10 @@ Flask entry point for the Gun-Wall Game simulation dashboard.
 """
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # noqa: E402
 
-# Ensure project root is on sys.path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from flask import Flask, render_template
-from api.routes import api_bp
+from flask import Flask, render_template  # noqa: E402
+from api.routes import api_bp  # noqa: E402
 
 app = Flask(__name__)
 app.register_blueprint(api_bp)

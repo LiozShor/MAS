@@ -2,8 +2,8 @@
 Monte Carlo episode runner and batch statistics.
 """
 import numpy as np
-from config import T, INITIAL_BELIEF, BELIEF_GRID, DELTA, N_BELIEFS
-from engine.game import (legal_actions, outcome, ammo_transition,
+from config import T, INITIAL_BELIEF, DELTA, N_BELIEFS
+from engine.game import (outcome, ammo_transition,
                          stage_utility, outcome_payoff, is_terminal)
 from engine.belief import propagate_belief
 
