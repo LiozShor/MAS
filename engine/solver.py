@@ -5,7 +5,7 @@ Computes belief-dependent policies for both players via fixed-point iteration.
 import numpy as np
 from config import (T, BELIEF_GRID, DELTA, N_BELIEFS,
                     IBR_ALPHA, IBR_EPSILON, IBR_MAX_ITER,
-                    DRAW_PENALTY)
+                    DRAW_PENALTY, SOFTMAX_BETA)
 from engine.game import (legal_actions, outcome, ammo_transition,
                          stage_utility, outcome_payoff, is_terminal)
 
@@ -75,20 +75,20 @@ def best_response(player, opp_policy, persona_weights=None, log_collector=None):
                                        opp_policy, V[t + 1], persona_weights)
                     q_values[u_me] = q_val
 
-                # Best response: pick action(s) with max Q
-                max_q = max(q_values.values())
-                V[t][own_ammo][p_idx] = max_q
+                # Softmax best response: smooth probability distribution
+                q_arr = np.array([q_values[a] for a in my_actions])
+                # Shift for numerical stability
+                q_shifted = SOFTMAX_BETA * (q_arr - np.max(q_arr))
+                exp_q = np.exp(q_shifted)
+                softmax_probs = exp_q / np.sum(exp_q)
 
-                # Deterministic best response (break ties uniformly)
-                best_actions = [a for a, q in q_values.items()
-                                if abs(q - max_q) < 1e-10]
                 action_probs = {}
-                for a in my_actions:
-                    if a in best_actions:
-                        action_probs[a] = 1.0 / len(best_actions)
-                    else:
-                        action_probs[a] = 0.0
+                for idx_a, a in enumerate(my_actions):
+                    action_probs[a] = float(softmax_probs[idx_a])
                 new_policy[t][own_ammo][p_idx] = action_probs
+
+                # Value = expected Q under softmax distribution
+                V[t][own_ammo][p_idx] = float(np.dot(softmax_probs, q_arr))
 
                 # Collect Q-values for logging if requested
                 if log_collector is not None:

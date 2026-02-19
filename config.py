@@ -60,6 +60,7 @@ STAGE_UTILITY = {
 IBR_ALPHA = 0.5       # damping factor
 IBR_EPSILON = 1e-4    # convergence tolerance
 IBR_MAX_ITER = 200    # max IBR iterations
+SOFTMAX_BETA = 2.0    # softmax temperature: higher = sharper, lower = smoother
 
 # --- Simulation defaults ---
 DEFAULT_N_EPISODES = 500

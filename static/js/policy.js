@@ -1,14 +1,28 @@
 /**
- * Policy visualization: plot average P(Shoot) vs belief p for BOTH players.
- * Shows one line per player (averaged across all 5 rounds), making it easy
+ * Policy visualization: plot P(Shoot) vs belief p for BOTH players
+ * for a SINGLE round (selectable via dropdown).
+ *
+ * Shows one line per player for the selected round, making it easy
  * to compare how P1 and P2 adapt their aggressiveness to perceived threat.
  *
- * Prefers policies from the last simulation run; falls back to /api/solve.
+ * Requires a simulation to be run first (uses lastSimResult).
  */
 let policyChart = null;
 
+/* Cached data so the round selector can redraw without re-fetching */
+let _cachedPolicy1 = null;
+let _cachedPolicy2 = null;
+let _cachedNBeliefs = 21;
+let _cachedDelta = 0.05;
+
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-policy').addEventListener('click', showPolicy);
+    document.getElementById('policy-round').addEventListener('change', () => {
+        if (_cachedPolicy1 && _cachedPolicy2) {
+            const round = parseInt(document.getElementById('policy-round').value, 10);
+            renderPolicyChart(_cachedPolicy1, _cachedPolicy2, _cachedNBeliefs, _cachedDelta, round);
+        }
+    });
 });
 
 async function showPolicy() {
@@ -24,13 +38,14 @@ async function showPolicy() {
             return;
         }
 
-        const policy1 = lastSimResult.policy1;
-        const policy2 = lastSimResult.policy2;
-        const nBeliefs = lastSimResult.n_beliefs || 21;
-        const delta = lastSimResult.delta || 0.05;
+        _cachedPolicy1 = lastSimResult.policy1;
+        _cachedPolicy2 = lastSimResult.policy2;
+        _cachedNBeliefs = lastSimResult.n_beliefs || 21;
+        _cachedDelta = lastSimResult.delta || 0.05;
         setStatus('pol-status', 'Using policy from last simulation', 'success');
 
-        renderPolicyChart(policy1, policy2, nBeliefs, delta);
+        const round = parseInt(document.getElementById('policy-round').value, 10);
+        renderPolicyChart(_cachedPolicy1, _cachedPolicy2, _cachedNBeliefs, _cachedDelta, round);
     } catch (e) {
         setStatus('pol-status', 'Error: ' + e.message, 'error');
     } finally {
@@ -39,46 +54,34 @@ async function showPolicy() {
 }
 
 /**
- * Compute the average P(actionKey) across all rounds for a given policy and ammo state.
- * Returns an array of length nBeliefs with the averaged probabilities.
+ * Extract P(actionKey) for a single round from a policy.
+ * Returns an array of length nBeliefs.
  */
-function averageActionProb(policy, ammo, actionKey, nBeliefs) {
-    const avgProbs = new Array(nBeliefs).fill(0);
-    let roundCount = 0;
+function getRoundActionProb(policy, round, ammo, actionKey, nBeliefs) {
+    const probs = new Array(nBeliefs).fill(0);
+    const tData = policy[String(round)];
+    if (!tData) return probs;
+    const ammoData = tData[String(ammo)];
+    if (!ammoData) return probs;
 
-    for (let t = 1; t <= 5; t++) {
-        const tData = policy[String(t)];
-        if (!tData) continue;
-        const ammoData = tData[String(ammo)];
-        if (!ammoData) continue;
-        roundCount++;
-
-        for (let pidx = 0; pidx < nBeliefs; pidx++) {
-            const actionProbs = ammoData[String(pidx)];
-            avgProbs[pidx] += actionProbs ? (actionProbs[actionKey] || 0) : 0;
-        }
+    for (let pidx = 0; pidx < nBeliefs; pidx++) {
+        const actionProbs = ammoData[String(pidx)];
+        probs[pidx] = actionProbs ? (actionProbs[actionKey] || 0) : 0;
     }
-
-    if (roundCount > 0) {
-        for (let i = 0; i < nBeliefs; i++) {
-            avgProbs[i] /= roundCount;
-        }
-    }
-
-    return avgProbs;
+    return probs;
 }
 
-function renderPolicyChart(policy1, policy2, nBeliefs, delta) {
+function renderPolicyChart(policy1, policy2, nBeliefs, delta, round) {
     const ctx = document.getElementById('chart-policy').getContext('2d');
     if (policyChart) policyChart.destroy();
 
-    const ammo = 1;          // Always show armed case (Shoot vs Block)
-    const actionKey = 'S';   // Track probability of shooting
+    const ammo = 1;          // Show armed case (Shoot vs Block)
+    const actionKey = 'S';   // Probability of shooting
 
     const beliefPoints = Array.from({ length: nBeliefs }, (_, i) => (i * delta).toFixed(2));
 
-    const p1Probs = averageActionProb(policy1, ammo, actionKey, nBeliefs);
-    const p2Probs = averageActionProb(policy2, ammo, actionKey, nBeliefs);
+    const p1Probs = getRoundActionProb(policy1, round, ammo, actionKey, nBeliefs);
+    const p2Probs = getRoundActionProb(policy2, round, ammo, actionKey, nBeliefs);
 
     const datasets = [
         {
@@ -88,10 +91,11 @@ function renderPolicyChart(policy1, policy2, nBeliefs, delta) {
             backgroundColor: 'rgba(108, 92, 231, 0.08)',
             borderWidth: 3,
             fill: true,
-            tension: 0.35,
+            tension: 0.2,
             pointRadius: 3,
             pointHoverRadius: 6,
             pointBackgroundColor: '#6c5ce7',
+
         },
         {
             label: 'Player 2',
@@ -100,7 +104,7 @@ function renderPolicyChart(policy1, policy2, nBeliefs, delta) {
             backgroundColor: 'rgba(0, 184, 148, 0.08)',
             borderWidth: 3,
             fill: true,
-            tension: 0.35,
+            tension: 0.2,
             pointRadius: 3,
             pointHoverRadius: 6,
             pointBackgroundColor: '#00b894',
@@ -153,7 +157,7 @@ function renderPolicyChart(policy1, policy2, nBeliefs, delta) {
                 },
                 title: {
                     display: true,
-                    text: 'Shoot Probability vs Opponent Threat (averaged across rounds)',
+                    text: `Shoot Probability vs Opponent Threat (Round ${round} of 5)`,
                     color: '#e1e4ec',
                     font: { size: 15 },
                     padding: { bottom: 16 },
