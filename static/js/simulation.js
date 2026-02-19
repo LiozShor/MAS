@@ -29,6 +29,9 @@ async function runSimulation() {
         renderScoreChart(data.stats);
         renderTermChart(data.stats);
         renderStatsTable(data.stats);
+        if (typeof renderComputationLog === 'function') {
+            renderComputationLog(data.computation_log);
+        }
         populateReplayDropdown(data.episodes);
     } catch (e) {
         setStatus('sim-status', 'Error: ' + e.message, 'error');

@@ -7,7 +7,7 @@ import numpy as np
 # --- Game parameters ---
 T = 5                          # finite horizon (rounds)
 ACTIONS = ['S', 'B', 'R']     # Shoot, Block, Reload
-OUTCOMES = ['Continue', 'P1Win', 'P2Win', 'Tie']
+OUTCOMES = ['Continue', 'P1Win', 'P2Win', 'Tie', 'Draw']
 
 # --- Belief grid ---
 DELTA = 0.05
@@ -19,8 +19,12 @@ OUTCOME_PAYOFF = {
     'P1Win': (+10, -10),
     'P2Win': (-10, +10),
     'Tie':   (-5,  -5),
+    'Draw':  (-3,  -3),
     'Continue': (0, 0),
 }
+
+# Draw penalty for solver V[T+1] initialization
+DRAW_PENALTY = 0
 
 # --- Stage utility tables G(state, u1, u2) = (G1, G2) ---
 # State = (a1, a2), keys are (u1, u2)

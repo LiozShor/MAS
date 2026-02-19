@@ -2,6 +2,7 @@
 Flask blueprint with API endpoints: /api/solve, /api/simulate, /api/personas.
 """
 from flask import Blueprint, request, jsonify
+from config import N_BELIEFS, DELTA
 from engine.personas import list_personas, get_persona_weights
 from engine.solver import ibr_solve, policy_to_serializable
 from engine.simulation import run_batch
@@ -41,6 +42,9 @@ def solve():
             'converged': cached['converged'],
             'policy1': policy_to_serializable(cached['policy1']),
             'policy2': policy_to_serializable(cached['policy2']),
+            'n_beliefs': N_BELIEFS,
+            'delta': DELTA,
+            'computation_log': cached.get('computation_log', []),
         })
 
     w1 = get_persona_weights(p1_name)
@@ -56,6 +60,9 @@ def solve():
         'converged': result['converged'],
         'policy1': policy_to_serializable(result['policy1']),
         'policy2': policy_to_serializable(result['policy2']),
+        'n_beliefs': N_BELIEFS,
+        'delta': DELTA,
+        'computation_log': result.get('computation_log', []),
     })
 
 
@@ -96,6 +103,11 @@ def simulate():
         'solver_iterations': solver_result['iterations'],
         'solver_converged': solver_result['converged'],
         'stats': stats,
+        'policy1': policy_to_serializable(policy1),
+        'policy2': policy_to_serializable(policy2),
+        'n_beliefs': N_BELIEFS,
+        'delta': DELTA,
+        'computation_log': solver_result.get('computation_log', []),
     }
     if include_episodes:
         response['episodes'] = episodes
