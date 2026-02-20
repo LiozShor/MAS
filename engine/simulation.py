@@ -28,7 +28,7 @@ def compute_thresholds(policy):
     return thresholds
 
 
-def _sample_action(policy, t, ammo, p):
+def _sample_action(policy, t, ammo, p, rng):
     """Sample an action from the policy at (t, ammo, belief p)."""
     p_idx = int(round(p / DELTA))
     p_idx = max(0, min(p_idx, N_BELIEFS - 1))
@@ -40,11 +40,11 @@ def _sample_action(policy, t, ammo, p):
     # Normalize to handle floating point issues
     total = sum(probs)
     if total > 0:
-        probs = [p / total for p in probs]
+        probs = [pr / total for pr in probs]
     else:
         probs = [1.0 / len(actions)] * len(actions)
 
-    return np.random.choice(actions, p=probs)
+    return rng.choice(actions, p=probs)
 
 
 def run_episode(policy1, policy2, rng=None):
@@ -73,8 +73,8 @@ def run_episode(policy1, policy2, rng=None):
 
     for t in range(1, T + 1):
         # Sample actions
-        u1 = str(_sample_action(policy1, t, a1, p1))
-        u2 = str(_sample_action(policy2, t, a2, p2))
+        u1 = str(_sample_action(policy1, t, a1, p1, rng))
+        u2 = str(_sample_action(policy2, t, a2, p2, rng))
 
         state = (a1, a2)
         o = outcome(state, u1, u2)

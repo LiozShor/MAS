@@ -75,7 +75,7 @@ function renderPolicyChart(policy1, policy2, nBeliefs, delta, round) {
     const ctx = document.getElementById('chart-policy').getContext('2d');
     if (policyChart) policyChart.destroy();
 
-    const ammo = 1;          // Show armed case (Shoot vs Block)
+    const ammo = round === 1 ? 0 : 1; // Round 1 starts unarmed
     const actionKey = 'S';   // Probability of shooting
 
     const beliefPoints = Array.from({ length: nBeliefs }, (_, i) => (i * delta).toFixed(2));

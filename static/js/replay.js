@@ -119,15 +119,25 @@ function buildExplanation(playerNum, actionProbs, belief, threshold, ammo, actio
     const actionNames = { S: 'Shoot', B: 'Block', R: 'Reload' };
     const chosenName = actionNames[action] || action;
 
-    // Build probability summary for all actions
-    const probParts = Object.entries(actionProbs)
+    // Find the highest-probability action (policy recommendation)
+    const sorted = Object.entries(actionProbs)
         .filter(([, p]) => p > 0.001)
-        .sort((a, b) => b[1] - a[1])
+        .sort((a, b) => b[1] - a[1]);
+    const bestAction = sorted[0][0];
+    const isDeviation = action !== bestAction;
+
+    // Build probability summary for all actions
+    const probParts = sorted
         .map(([a, p]) => `P(${actionNames[a]})=${p.toFixed(2)}`);
 
-    const reasoning = `Belief=${belief.toFixed(3)} | ${probParts.join(', ')} &rarr; ${chosenName}`;
+    const chosenProb = (actionProbs[action] || 0).toFixed(2);
+    const deviationTag = isDeviation
+        ? ` <span class="deviation-badge" title="Sampled low-probability action (mixed strategy)">rolled ${chosenProb}</span>`
+        : '';
 
-    return `<div class="explanation-row">
+    const reasoning = `Belief=${belief.toFixed(3)} | ${probParts.join(', ')} &rarr; ${chosenName}${deviationTag}`;
+
+    return `<div class="explanation-row${isDeviation ? ' deviation' : ''}">
         <span class="label">P${playerNum} Decision</span>
         <span>${reasoning}</span>
     </div>`;

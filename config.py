@@ -60,8 +60,8 @@ STAGE_UTILITY = {
 IBR_ALPHA = 0.5       # damping factor
 IBR_EPSILON = 1e-4    # convergence tolerance
 IBR_MAX_ITER = 200    # max IBR iterations
-SOFTMAX_BETA = 2.0    # softmax temperature: higher = sharper, lower = smoother
+SOFTMAX_BETA = 3.0    # softmax temperature: higher = sharper, lower = smoother
 
 # --- Simulation defaults ---
 DEFAULT_N_EPISODES = 500
-INITIAL_BELIEF = 0.5  # initial belief p about opponent having ammo
+INITIAL_BELIEF = 0.0  # both players start unarmed — known initial state
