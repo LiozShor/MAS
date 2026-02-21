@@ -358,6 +358,34 @@ select:focus, input:focus {
 .outcome-Continue { background: rgba(116,185,255,0.1); color: var(--blue); }
 .outcome-Draw { background: rgba(139,144,165,0.2); color: var(--text-dim); }
 
+/* ===== Policy Round Filter ===== */
+.round-filter {
+    display: flex;
+    gap: 10px;
+}
+
+.round-filter label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    color: #e1e4ec;
+    font-size: 0.9rem;
+    padding: 4px 10px;
+    border: 1px solid #2e3348;
+    border-radius: 6px;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.round-filter label:has(input:checked) {
+    border-color: #6c5ce7;
+    background: rgba(108, 92, 231, 0.15);
+}
+
+.round-filter input[type="checkbox"] {
+    accent-color: #6c5ce7;
+}
+
 /* ===== Experiment Tab ===== */
 .btn-small {
     padding: 4px 12px;
