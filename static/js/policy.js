@@ -2,10 +2,27 @@
  * Policy visualization: plot action probabilities vs belief p for each round.
  */
 let policyChart = null;
+let _lastPolicy = null;
+let _lastAmmo = null;
+let _lastPlayer = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-policy').addEventListener('click', showPolicy);
+
+    // Re-render chart on round filter change (without re-solving)
+    document.querySelectorAll('.pol-round').forEach(cb => {
+        cb.addEventListener('change', () => {
+            if (_lastPolicy !== null) {
+                renderPolicyChart(_lastPolicy, _lastAmmo, _lastPlayer);
+            }
+        });
+    });
 });
+
+function getSelectedRounds() {
+    return Array.from(document.querySelectorAll('.pol-round:checked'))
+        .map(cb => parseInt(cb.value));
+}
 
 async function showPolicy() {
     const persona = document.getElementById('pol-persona').value;
@@ -17,12 +34,14 @@ async function showPolicy() {
     setStatus('pol-status', 'Solving...', 'loading');
 
     try {
-        // Solve balanced vs selected persona (or persona vs persona for symmetry)
         const data = await API.solve(persona, persona);
         const policyKey = player === 1 ? 'policy1' : 'policy2';
-        const policy = data[policyKey];
 
-        renderPolicyChart(policy, ammo, player);
+        _lastPolicy = data[policyKey];
+        _lastAmmo = ammo;
+        _lastPlayer = player;
+
+        renderPolicyChart(_lastPolicy, ammo, player);
         setStatus('pol-status',
             `Solved: ${data.iterations} IBR iters, converged: ${data.converged}`,
             'success');
@@ -37,18 +56,18 @@ function renderPolicyChart(policy, ammo, player) {
     const ctx = document.getElementById('chart-policy').getContext('2d');
     if (policyChart) policyChart.destroy();
 
-    // Build datasets: one line per round, showing the "active" action probability
-    // For ammo=1: plot P(Shoot) vs p
-    // For ammo=0: plot P(Reload) vs p
     const actionKey = ammo === 1 ? 'S' : 'R';
     const actionName = ammo === 1 ? 'Shoot' : 'Reload';
     const nBeliefs = 21;
     const beliefPoints = Array.from({ length: nBeliefs }, (_, i) => (i * 0.05).toFixed(2));
+    const selectedRounds = getSelectedRounds();
 
     const colors = ['#e17055', '#fdcb6e', '#00b894', '#74b9ff', '#6c5ce7'];
     const datasets = [];
 
     for (let t = 1; t <= 5; t++) {
+        if (!selectedRounds.includes(t)) continue;
+
         const tData = policy[String(t)];
         if (!tData) continue;
         const ammoData = tData[String(ammo)];
