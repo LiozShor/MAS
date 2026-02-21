@@ -26,11 +26,17 @@ const API = {
         return this.post('/api/solve', { persona1, persona2 });
     },
 
-    simulate(persona1, persona2, n_episodes) {
-        return this.post('/api/simulate', { persona1, persona2, n_episodes });
+    simulate(persona1, persona2, n_episodes, optimal_p1, optimal_p2) {
+        const body = { persona1, persona2, n_episodes };
+        if (optimal_p1 !== undefined) body.optimal_p1 = optimal_p1;
+        if (optimal_p2 !== undefined) body.optimal_p2 = optimal_p2;
+        return this.post('/api/simulate', body);
     },
 
-    simulateStatsOnly(persona1, persona2, n_episodes) {
-        return this.post('/api/simulate', { persona1, persona2, n_episodes, include_episodes: false });
+    simulateStatsOnly(persona1, persona2, n_episodes, optimal_p1, optimal_p2) {
+        const body = { persona1, persona2, n_episodes, include_episodes: false };
+        if (optimal_p1 !== undefined) body.optimal_p1 = optimal_p1;
+        if (optimal_p2 !== undefined) body.optimal_p2 = optimal_p2;
+        return this.post('/api/simulate', body);
     },
 };

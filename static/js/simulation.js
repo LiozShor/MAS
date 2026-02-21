@@ -14,13 +14,19 @@ async function runSimulation() {
     const p1 = document.getElementById('sim-p1').value;
     const p2 = document.getElementById('sim-p2').value;
     const n = parseInt(document.getElementById('sim-n').value) || 500;
+    const optimalP1 = document.getElementById('sim-optimal-p1').checked;
+    const optimalP2 = document.getElementById('sim-optimal-p2').checked;
     const btn = document.getElementById('btn-simulate');
 
     btn.disabled = true;
     setStatus('sim-status', 'Solving + simulating... (this may take a moment)', 'loading');
 
     try {
-        const data = await API.simulate(p1, p2, n);
+        const data = await API.simulate(p1, p2, n, optimalP1, optimalP2);
+        data.persona1 = document.getElementById('sim-p1').selectedOptions[0].textContent;
+        data.persona2 = document.getElementById('sim-p2').selectedOptions[0].textContent;
+        data.optimal_p1 = optimalP1;
+        data.optimal_p2 = optimalP2;
         lastSimResult = data;
         setStatus('sim-status',
             `Done — ${data.stats.n_episodes} episodes, solver: ${data.solver_iterations} IBR iters (converged: ${data.solver_converged})`,

@@ -642,6 +642,110 @@ select:focus, input:focus {
     vertical-align: middle;
 }
 
+/* ===== Q-Value Deltas ===== */
+.q-value-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.75rem;
+    padding: 2px 0;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    color: var(--text-dim);
+}
+.q-value-row .label {
+    color: var(--accent-light);
+    font-weight: 500;
+    min-width: 100px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.q-note-row {
+    font-size: 0.72rem;
+    padding-bottom: 4px;
+}
+.q-best {
+    color: var(--green);
+    font-weight: 600;
+    font-size: 0.68rem;
+}
+.q-delta {
+    color: var(--red);
+    font-size: 0.68rem;
+}
+.q-softmax-note {
+    color: #ffa500;
+    font-style: italic;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.q-greedy-note {
+    color: var(--green);
+    font-style: italic;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ===== Checkbox ===== */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+.checkbox-hint {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+}
+
+/* ===== Persona Labels in Round Card ===== */
+.persona-labels {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+}
+.persona-label {
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+.p1-persona {
+    background: rgba(108,92,231,0.2);
+    color: var(--accent-light);
+}
+.p2-persona {
+    background: rgba(0,184,148,0.2);
+    color: var(--green);
+}
+.persona-vs {
+    color: var(--text-dim);
+    font-size: 0.72rem;
+    font-style: italic;
+}
+.mode-tag {
+    font-size: 0.62rem;
+    font-weight: 500;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.mode-optimal {
+    background: rgba(0,184,148,0.2);
+    color: var(--green);
+}
+.mode-softmax {
+    background: rgba(255,165,0,0.2);
+    color: #ffa500;
+}
+
 @media (max-width: 768px) {
     .charts-row { grid-template-columns: 1fr; }
     .replay-grid { grid-template-columns: 1fr; }

@@ -39,9 +39,16 @@ function renderReplay() {
     const ep = replayEpisode;
     const r = ep.rounds[replayRound];
 
+    // Persona labels
+    const p1Persona = lastSimResult?.persona1 || 'P1';
+    const p2Persona = lastSimResult?.persona2 || 'P2';
+    const p1Mode = lastSimResult?.optimal_p1 ? 'Optimal' : 'Softmax';
+    const p2Mode = lastSimResult?.optimal_p2 ? 'Optimal' : 'Softmax';
+
     // Info bar
     document.getElementById('replay-info').innerHTML = `
-        <strong>Episode outcome:</strong>
+        <strong>P1:</strong> ${p1Persona} &nbsp;vs&nbsp; <strong>P2:</strong> ${p2Persona}
+        &nbsp;|&nbsp; <strong>Outcome:</strong>
         <span class="outcome-badge outcome-${ep.outcome}">${ep.outcome}</span>
         &nbsp;|&nbsp; Rounds: ${ep.rounds.length}
         &nbsp;|&nbsp; Total rewards: P1=${ep.total_rewards[0].toFixed(1)}, P2=${ep.total_rewards[1].toFixed(1)}
@@ -55,14 +62,19 @@ function renderReplay() {
     if (r.p1_action_probs && r.p2_action_probs) {
         explanationHtml = `
             <div class="decision-explanation">
-                ${buildExplanation(1, r.p1_action_probs, r.beliefs_before[0], r.p1_threshold, r.ammo_before[0], r.actions[0])}
-                ${buildExplanation(2, r.p2_action_probs, r.beliefs_before[1], r.p2_threshold, r.ammo_before[1], r.actions[1])}
+                ${buildExplanation(1, r.p1_action_probs, r.beliefs_before[0], r.p1_threshold, r.ammo_before[0], r.actions[0], r.p1_q_values)}
+                ${buildExplanation(2, r.p2_action_probs, r.beliefs_before[1], r.p2_threshold, r.ammo_before[1], r.actions[1], r.p2_q_values)}
             </div>`;
     }
 
     document.getElementById('replay-round-detail').innerHTML = `
         <div class="round-card">
             <div class="round-header">Round ${r.round} of ${ep.rounds.length}</div>
+            <div class="persona-labels">
+                <span class="persona-label p1-persona">P1: ${p1Persona} <span class="mode-tag mode-${p1Mode.toLowerCase()}">${p1Mode}</span></span>
+                <span class="persona-vs">vs</span>
+                <span class="persona-label p2-persona">P2: ${p2Persona} <span class="mode-tag mode-${p2Mode.toLowerCase()}">${p2Mode}</span></span>
+            </div>
             <div class="detail-row">
                 <span class="label">State (ammo)</span>
                 <span>P1=${r.ammo_before[0]}, P2=${r.ammo_before[1]}</span>
@@ -115,7 +127,7 @@ function renderReplay() {
     });
 }
 
-function buildExplanation(playerNum, actionProbs, belief, threshold, ammo, action) {
+function buildExplanation(playerNum, actionProbs, belief, threshold, ammo, action, qValues) {
     const actionNames = { S: 'Shoot', B: 'Block', R: 'Reload' };
     const chosenName = actionNames[action] || action;
 
@@ -137,10 +149,45 @@ function buildExplanation(playerNum, actionProbs, belief, threshold, ammo, actio
 
     const reasoning = `Belief=${belief.toFixed(3)} | ${probParts.join(', ')} &rarr; ${chosenName}${deviationTag}`;
 
+    // Build Q-value delta section
+    let qHtml = '';
+    if (qValues && Object.keys(qValues).length > 0) {
+        const qEntries = Object.entries(qValues)
+            .sort((a, b) => b[1] - a[1]);  // highest Q first
+        const bestQ = qEntries[0][1];
+        const greedyAction = qEntries[0][0];
+
+        const qParts = qEntries.map(([a, q]) => {
+            const delta = q - bestQ;
+            const tag = delta === 0
+                ? '<span class="q-best">best</span>'
+                : `<span class="q-delta">(${delta.toFixed(2)})</span>`;
+            return `Q(${actionNames[a]})=${q.toFixed(2)} ${tag}`;
+        });
+
+        const margin = qEntries.length > 1
+            ? (qEntries[0][1] - qEntries[1][1]).toFixed(2)
+            : '0.00';
+
+        const noteHtml = action !== greedyAction
+            ? `<span class="q-softmax-note">Softmax sampled ${actionNames[action]} (Q=${(qValues[action] || 0).toFixed(2)}) over greedy ${actionNames[greedyAction]}</span>`
+            : `<span class="q-greedy-note">Chose greedy action (\u0394=+${margin})</span>`;
+
+        qHtml = `
+            <div class="q-value-row">
+                <span class="label">Q-values</span>
+                <span>${qParts.join(' &nbsp;|&nbsp; ')}</span>
+            </div>
+            <div class="q-value-row q-note-row">
+                <span class="label"></span>
+                <span>${noteHtml}</span>
+            </div>`;
+    }
+
     return `<div class="explanation-row${isDeviation ? ' deviation' : ''}">
         <span class="label">P${playerNum} Decision</span>
         <span>${reasoning}</span>
-    </div>`;
+    </div>${qHtml}`;
 }
 
 function renderBeliefChart() {

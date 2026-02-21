@@ -37,6 +37,20 @@
                 <label for="sim-n">Episodes</label>
                 <input id="sim-n" type="number" value="500" min="1" max="10000">
             </div>
+            <div class="control-group">
+                <label class="checkbox-label">
+                    <input id="sim-optimal-p1" type="checkbox" checked>
+                    <span>P1 Optimal</span>
+                </label>
+                <span class="checkbox-hint">Uncheck for human-like (softmax)</span>
+            </div>
+            <div class="control-group">
+                <label class="checkbox-label">
+                    <input id="sim-optimal-p2" type="checkbox" checked>
+                    <span>P2 Optimal</span>
+                </label>
+                <span class="checkbox-hint">Uncheck for human-like (softmax)</span>
+            </div>
             <button id="btn-simulate" class="btn-primary">Run Simulation</button>
         </div>
 
