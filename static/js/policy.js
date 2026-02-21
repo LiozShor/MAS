@@ -1,50 +1,51 @@
 /**
- * Policy visualization: plot action probabilities vs belief p for each round.
+ * Policy visualization: plot P(Shoot) vs belief p for BOTH players
+ * for a SINGLE round (selectable via dropdown).
+ *
+ * Shows one line per player for the selected round, making it easy
+ * to compare how P1 and P2 adapt their aggressiveness to perceived threat.
+ *
+ * Requires a simulation to be run first (uses lastSimResult).
  */
 let policyChart = null;
-let _lastPolicy = null;
-let _lastAmmo = null;
-let _lastPlayer = null;
+
+/* Cached data so the round selector can redraw without re-fetching */
+let _cachedPolicy1 = null;
+let _cachedPolicy2 = null;
+let _cachedNBeliefs = 21;
+let _cachedDelta = 0.05;
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-policy').addEventListener('click', showPolicy);
-
-    // Re-render chart on round filter change (without re-solving)
-    document.querySelectorAll('.pol-round').forEach(cb => {
-        cb.addEventListener('change', () => {
-            if (_lastPolicy !== null) {
-                renderPolicyChart(_lastPolicy, _lastAmmo, _lastPlayer);
-            }
-        });
+    document.getElementById('policy-round').addEventListener('change', () => {
+        if (_cachedPolicy1 && _cachedPolicy2) {
+            const round = parseInt(document.getElementById('policy-round').value, 10);
+            renderPolicyChart(_cachedPolicy1, _cachedPolicy2, _cachedNBeliefs, _cachedDelta, round);
+        }
     });
 });
 
-function getSelectedRounds() {
-    return Array.from(document.querySelectorAll('.pol-round:checked'))
-        .map(cb => parseInt(cb.value));
-}
-
 async function showPolicy() {
-    const persona = document.getElementById('pol-persona').value;
-    const player = parseInt(document.getElementById('pol-player').value);
-    const ammo = parseInt(document.getElementById('pol-ammo').value);
     const btn = document.getElementById('btn-policy');
 
     btn.disabled = true;
-    setStatus('pol-status', 'Solving...', 'loading');
+    setStatus('pol-status', 'Loading policy...', 'loading');
 
     try {
-        const data = await API.solve(persona, persona);
-        const policyKey = player === 1 ? 'policy1' : 'policy2';
+        // Require a simulation to have been run
+        if (typeof lastSimResult === 'undefined' || !lastSimResult || !lastSimResult.policy1) {
+            setStatus('pol-status', 'Please run a simulation first (Simulation tab)', 'error');
+            return;
+        }
 
-        _lastPolicy = data[policyKey];
-        _lastAmmo = ammo;
-        _lastPlayer = player;
+        _cachedPolicy1 = lastSimResult.policy1;
+        _cachedPolicy2 = lastSimResult.policy2;
+        _cachedNBeliefs = lastSimResult.n_beliefs || 21;
+        _cachedDelta = lastSimResult.delta || 0.05;
+        setStatus('pol-status', 'Using policy from last simulation', 'success');
 
-        renderPolicyChart(_lastPolicy, ammo, player);
-        setStatus('pol-status',
-            `Solved: ${data.iterations} IBR iters, converged: ${data.converged}`,
-            'success');
+        const round = parseInt(document.getElementById('policy-round').value, 10);
+        renderPolicyChart(_cachedPolicy1, _cachedPolicy2, _cachedNBeliefs, _cachedDelta, round);
     } catch (e) {
         setStatus('pol-status', 'Error: ' + e.message, 'error');
     } finally {
@@ -52,42 +53,63 @@ async function showPolicy() {
     }
 }
 
-function renderPolicyChart(policy, ammo, player) {
+/**
+ * Extract P(actionKey) for a single round from a policy.
+ * Returns an array of length nBeliefs.
+ */
+function getRoundActionProb(policy, round, ammo, actionKey, nBeliefs) {
+    const probs = new Array(nBeliefs).fill(0);
+    const tData = policy[String(round)];
+    if (!tData) return probs;
+    const ammoData = tData[String(ammo)];
+    if (!ammoData) return probs;
+
+    for (let pidx = 0; pidx < nBeliefs; pidx++) {
+        const actionProbs = ammoData[String(pidx)];
+        probs[pidx] = actionProbs ? (actionProbs[actionKey] || 0) : 0;
+    }
+    return probs;
+}
+
+function renderPolicyChart(policy1, policy2, nBeliefs, delta, round) {
     const ctx = document.getElementById('chart-policy').getContext('2d');
     if (policyChart) policyChart.destroy();
 
-    const actionKey = ammo === 1 ? 'S' : 'R';
-    const actionName = ammo === 1 ? 'Shoot' : 'Reload';
-    const nBeliefs = 21;
-    const beliefPoints = Array.from({ length: nBeliefs }, (_, i) => (i * 0.05).toFixed(2));
-    const selectedRounds = getSelectedRounds();
+    const ammo = round === 1 ? 0 : 1; // Round 1 starts unarmed
+    const actionKey = 'S';   // Probability of shooting
 
-    const colors = ['#e17055', '#fdcb6e', '#00b894', '#74b9ff', '#6c5ce7'];
-    const datasets = [];
+    const beliefPoints = Array.from({ length: nBeliefs }, (_, i) => (i * delta).toFixed(2));
 
-    for (let t = 1; t <= 5; t++) {
-        if (!selectedRounds.includes(t)) continue;
+    const p1Probs = getRoundActionProb(policy1, round, ammo, actionKey, nBeliefs);
+    const p2Probs = getRoundActionProb(policy2, round, ammo, actionKey, nBeliefs);
 
-        const tData = policy[String(t)];
-        if (!tData) continue;
-        const ammoData = tData[String(ammo)];
-        if (!ammoData) continue;
+    const datasets = [
+        {
+            label: 'Player 1',
+            data: p1Probs,
+            borderColor: '#6c5ce7',
+            backgroundColor: 'rgba(108, 92, 231, 0.08)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.2,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#6c5ce7',
 
-        const probs = [];
-        for (let pidx = 0; pidx < nBeliefs; pidx++) {
-            const actionProbs = ammoData[String(pidx)];
-            probs.push(actionProbs ? (actionProbs[actionKey] || 0) : 0);
-        }
-
-        datasets.push({
-            label: `Round ${t}`,
-            data: probs,
-            borderColor: colors[t - 1],
-            backgroundColor: 'transparent',
-            tension: 0.3,
-            pointRadius: 2,
-        });
-    }
+        },
+        {
+            label: 'Player 2',
+            data: p2Probs,
+            borderColor: '#00b894',
+            backgroundColor: 'rgba(0, 184, 148, 0.08)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.2,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#00b894',
+        },
+    ];
 
     policyChart = new Chart(ctx, {
         type: 'line',
@@ -97,25 +119,54 @@ function renderPolicyChart(policy, ammo, player) {
         },
         options: {
             responsive: true,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
             scales: {
                 y: {
                     min: 0, max: 1,
-                    title: { display: true, text: `P(${actionName})`, color: '#8b90a5' },
+                    title: {
+                        display: true,
+                        text: 'P(Shoot)  —  Probability of Shooting',
+                        color: '#8b90a5',
+                        font: { size: 13 },
+                    },
                     grid: { color: '#2e3348' },
                     ticks: { color: '#8b90a5' },
                 },
                 x: {
-                    title: { display: true, text: 'Belief p (opponent has ammo)', color: '#8b90a5' },
+                    title: {
+                        display: true,
+                        text: 'Belief p  —  "How likely is my opponent armed?"',
+                        color: '#8b90a5',
+                        font: { size: 13 },
+                    },
                     grid: { color: '#2e3348' },
                     ticks: { color: '#8b90a5', maxTicksLimit: 11 },
                 }
             },
             plugins: {
-                legend: { labels: { color: '#e1e4ec' } },
+                legend: {
+                    labels: {
+                        color: '#e1e4ec',
+                        font: { size: 13 },
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                    },
+                },
                 title: {
                     display: true,
-                    text: `P${player} ${actionName} probability — ammo=${ammo}`,
+                    text: `Shoot Probability vs Opponent Threat (Round ${round} of 5)`,
                     color: '#e1e4ec',
+                    font: { size: 15 },
+                    padding: { bottom: 16 },
+                },
+                tooltip: {
+                    callbacks: {
+                        title: (items) => `Belief p = ${items[0].label}`,
+                        label: (item) => `${item.dataset.label}: ${(item.parsed.y * 100).toFixed(1)}% chance to shoot`,
+                    }
                 }
             }
         }

@@ -4,7 +4,8 @@ Computes belief-dependent policies for both players via fixed-point iteration.
 """
 import numpy as np
 from config import (T, BELIEF_GRID, DELTA, N_BELIEFS,
-                    IBR_ALPHA, IBR_EPSILON, IBR_MAX_ITER)
+                    IBR_ALPHA, IBR_EPSILON, IBR_MAX_ITER,
+                    DRAW_PENALTY, SOFTMAX_BETA)
 from engine.game import (legal_actions, outcome, ammo_transition,
                          stage_utility, outcome_payoff, is_terminal)
 
@@ -27,7 +28,7 @@ def make_uniform_policy():
     return policy
 
 
-def best_response(player, opp_policy, persona_weights=None):
+def best_response(player, opp_policy, persona_weights=None, log_collector=None):
     """
     Compute the best-response policy for 'player' given opponent's policy,
     using backward induction over the belief grid.
@@ -36,6 +37,8 @@ def best_response(player, opp_policy, persona_weights=None):
         player: 1 or 2
         opp_policy: opponent's current policy
         persona_weights: optional (w_win, w_lose, w_tie) multipliers for outcome payoffs
+        log_collector: optional dict with 'target_states' set and 'entries' list
+                       to capture Q-values at specific (t, ammo, p_idx) states
 
     Returns:
         new_policy: best-response policy for this player
@@ -48,7 +51,8 @@ def best_response(player, opp_policy, persona_weights=None):
     # Value function: V[t][ammo][p_idx]
     # Initialize V[T+1] = 0 for all states
     V = {}
-    V[T + 1] = {0: np.zeros(N_BELIEFS), 1: np.zeros(N_BELIEFS)}
+    V[T + 1] = {0: np.full(N_BELIEFS, DRAW_PENALTY),
+                1: np.full(N_BELIEFS, DRAW_PENALTY)}
 
     # New policy to fill in
     new_policy = {}
@@ -71,19 +75,34 @@ def best_response(player, opp_policy, persona_weights=None):
                                        opp_policy, V[t + 1], persona_weights)
                     q_values[u_me] = q_val
 
-                # Best response: pick action(s) with max Q
-                max_q = max(q_values.values())
-                V[t][own_ammo][p_idx] = max_q
+                # Softmax best response: smooth probability distribution
+                q_arr = np.array([q_values[a] for a in my_actions])
+                # Shift for numerical stability
+                q_shifted = SOFTMAX_BETA * (q_arr - np.max(q_arr))
+                exp_q = np.exp(q_shifted)
+                softmax_probs = exp_q / np.sum(exp_q)
 
-                # Deterministic best response (break ties uniformly)
-                best_actions = [a for a, q in q_values.items() if abs(q - max_q) < 1e-10]
                 action_probs = {}
-                for a in my_actions:
-                    if a in best_actions:
-                        action_probs[a] = 1.0 / len(best_actions)
-                    else:
-                        action_probs[a] = 0.0
+                for idx_a, a in enumerate(my_actions):
+                    action_probs[a] = float(softmax_probs[idx_a])
                 new_policy[t][own_ammo][p_idx] = action_probs
+
+                # Value = max Q per paper Section 4.2:
+                # V^i_t(a, p) = max_{u^i} Q^i_t(u^i | a, p)
+                V[t][own_ammo][p_idx] = float(np.max(q_arr))
+
+                # Collect Q-values for logging if requested
+                if log_collector is not None:
+                    key = (t, own_ammo, p_idx)
+                    if key in log_collector['target_states']:
+                        log_collector['entries'].append({
+                            't': t,
+                            'ammo': own_ammo,
+                            'p': float(BELIEF_GRID[p_idx]),
+                            'q_values': {a: round(v, 4) for a, v in
+                                         q_values.items()},
+                            'action_probs': dict(action_probs),
+                        })
 
     return new_policy, V
 
@@ -217,16 +236,29 @@ def _solver_next_belief(p, own_ammo, my_action, opp_ammo, u_opp,
     return armed_next_weight / total_continue_weight
 
 
-def ibr_solve(persona1_weights=None, persona2_weights=None):
+LOG_STATES = [
+    (1, 0, 10),  # t=1, ammo=0, p_idx=10 (p=0.50)
+    (1, 1, 5),   # t=1, ammo=1, p_idx=5  (p=0.25)
+    (1, 1, 15),  # t=1, ammo=1, p_idx=15 (p=0.75)
+    (3, 0, 10),  # t=3, ammo=0, p_idx=10 (p=0.50)
+    (3, 1, 10),  # t=3, ammo=1, p_idx=10 (p=0.50)
+    (5, 1, 15),  # t=5, ammo=1, p_idx=15 (p=0.75)
+]
+
+
+def ibr_solve(persona1_weights=None, persona2_weights=None,
+              log_iterations=2):
     """
     Run Iterated Best Response to find equilibrium policies.
 
     Parameters:
         persona1_weights: (w_win, w_lose, w_tie) for player 1
         persona2_weights: (w_win, w_lose, w_tie) for player 2
+        log_iterations: number of early iterations to log (default 2)
 
     Returns:
-        dict with 'policy1', 'policy2', 'iterations', 'converged'
+        dict with 'policy1', 'policy2', 'iterations', 'converged',
+        'computation_log'
     """
     # Initialize with uniform policies
     pi1 = make_uniform_policy()
@@ -234,18 +266,61 @@ def ibr_solve(persona1_weights=None, persona2_weights=None):
 
     converged = False
     iterations = 0
+    computation_log = []
+    target_states = set(LOG_STATES)
+
+    # Track recent policies for averaging when IBR doesn't converge
+    avg_window = min(100, IBR_MAX_ITER)
+    recent_pi1 = []
+    recent_pi2 = []
 
     for k in range(IBR_MAX_ITER):
         iterations = k + 1
 
-        # Compute best response for P1 given P2's policy
-        br1, _ = best_response(1, pi2, persona1_weights)
-        # Compute best response for P2 given P1's new policy
-        br2, _ = best_response(2, pi1, persona2_weights)
+        # Set up logging for early iterations
+        log_p1 = None
+        log_p2 = None
+        if k < log_iterations:
+            log_p1 = {'target_states': target_states, 'entries': []}
+            log_p2 = {'target_states': target_states, 'entries': []}
 
-        # Damped update
+        # Simultaneous best response (symmetric — no player-order bias)
+        br1, _ = best_response(1, pi2, persona1_weights,
+                               log_collector=log_p1)
+        br2, _ = best_response(2, pi1, persona2_weights,
+                               log_collector=log_p2)
+
+        # Damped update per paper Section 6.1:
+        # π^i_{k+1} ← (1-α)π^i_k + α BR(π^{-i}_k)
         new_pi1 = _damp_policy(pi1, br1, IBR_ALPHA)
         new_pi2 = _damp_policy(pi2, br2, IBR_ALPHA)
+
+        # Build log entries for this iteration
+        if k < log_iterations:
+            for player_num, log_col, br, damped in [
+                (1, log_p1, br1, new_pi1),
+                (2, log_p2, br2, new_pi2),
+            ]:
+                states = []
+                for entry in log_col['entries']:
+                    t = entry['t']
+                    ammo = entry['ammo']
+                    p_idx = _p_to_idx(entry['p'])
+                    damped_probs = damped[t][ammo][p_idx]
+                    states.append({
+                        't': t,
+                        'ammo': ammo,
+                        'belief': entry['p'],
+                        'q_values': entry['q_values'],
+                        'br_probs': entry['action_probs'],
+                        'damped_probs': {a: round(v, 4) for a, v
+                                         in damped_probs.items()},
+                    })
+                computation_log.append({
+                    'iteration': k + 1,
+                    'player': player_num,
+                    'states': states,
+                })
 
         # Check convergence
         diff1 = _policy_diff(pi1, new_pi1)
@@ -254,16 +329,40 @@ def ibr_solve(persona1_weights=None, persona2_weights=None):
         pi1 = new_pi1
         pi2 = new_pi2
 
+        # Collect recent policies for averaging
+        if k >= IBR_MAX_ITER - avg_window:
+            recent_pi1.append(pi1)
+            recent_pi2.append(pi2)
+
         if diff1 < IBR_EPSILON and diff2 < IBR_EPSILON:
             converged = True
             break
+
+    # When IBR doesn't converge, average over recent policies to
+    # stabilize the oscillating cycle (akin to fictitious play averaging)
+    if not converged and recent_pi1:
+        pi1 = _avg_policies(recent_pi1)
+        pi2 = _avg_policies(recent_pi2)
+        
+        # Enforce exact symmetry if players have identical payoffs
+        if persona1_weights == persona2_weights:
+            sym_pi = _avg_policies([pi1, pi2])
+            pi1, pi2 = sym_pi, sym_pi
+
 
     return {
         'policy1': pi1,
         'policy2': pi2,
         'iterations': iterations,
         'converged': converged,
+        'computation_log': computation_log,
     }
+
+
+def _p_to_idx(p):
+    """Convert belief float to grid index."""
+    idx = int(round(p / DELTA))
+    return max(0, min(idx, N_BELIEFS - 1))
 
 
 def _damp_policy(old_policy, new_policy, alpha):
@@ -281,6 +380,24 @@ def _damp_policy(old_policy, new_policy, alpha):
                     damped[action] = (1 - alpha) * old_probs.get(action, 0.0) + \
                                      alpha * new_probs.get(action, 0.0)
                 result[t][ammo][p_idx] = damped
+    return result
+
+
+def _avg_policies(policies):
+    """Average a list of policies element-wise for stabilization."""
+    n = len(policies)
+    result = {}
+    for t in policies[0]:
+        result[t] = {}
+        for ammo in policies[0][t]:
+            result[t][ammo] = {}
+            for p_idx in policies[0][t][ammo]:
+                avg = {}
+                for action in policies[0][t][ammo][p_idx]:
+                    avg[action] = sum(
+                        p[t][ammo][p_idx].get(action, 0.0) for p in policies
+                    ) / n
+                result[t][ammo][p_idx] = avg
     return result
 
 

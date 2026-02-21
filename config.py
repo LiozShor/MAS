@@ -7,7 +7,7 @@ import numpy as np
 # --- Game parameters ---
 T = 5                          # finite horizon (rounds)
 ACTIONS = ['S', 'B', 'R']     # Shoot, Block, Reload
-OUTCOMES = ['Continue', 'P1Win', 'P2Win', 'Tie']
+OUTCOMES = ['Continue', 'P1Win', 'P2Win', 'Tie', 'Draw']
 
 # --- Belief grid ---
 DELTA = 0.05
@@ -19,8 +19,12 @@ OUTCOME_PAYOFF = {
     'P1Win': (+10, -10),
     'P2Win': (-10, +10),
     'Tie':   (-5,  -5),
+    'Draw':  (-3,  -3),
     'Continue': (0, 0),
 }
+
+# Draw penalty for solver V[T+1] initialization
+DRAW_PENALTY = 0
 
 # --- Stage utility tables G(state, u1, u2) = (G1, G2) ---
 # State = (a1, a2), keys are (u1, u2)
@@ -56,7 +60,8 @@ STAGE_UTILITY = {
 IBR_ALPHA = 0.5       # damping factor
 IBR_EPSILON = 1e-4    # convergence tolerance
 IBR_MAX_ITER = 200    # max IBR iterations
+SOFTMAX_BETA = 3.0    # softmax temperature: higher = sharper, lower = smoother
 
 # --- Simulation defaults ---
 DEFAULT_N_EPISODES = 500
-INITIAL_BELIEF = 0.5  # initial belief p about opponent having ammo
+INITIAL_BELIEF = 0.0  # both players start unarmed — known initial state

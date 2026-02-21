@@ -49,6 +49,17 @@ function renderReplay() {
 
     // Round detail
     const actionNames = { S: 'Shoot', B: 'Block', R: 'Reload' };
+
+    // Build decision explanations if data is available
+    let explanationHtml = '';
+    if (r.p1_action_probs && r.p2_action_probs) {
+        explanationHtml = `
+            <div class="decision-explanation">
+                ${buildExplanation(1, r.p1_action_probs, r.beliefs_before[0], r.p1_threshold, r.ammo_before[0], r.actions[0])}
+                ${buildExplanation(2, r.p2_action_probs, r.beliefs_before[1], r.p2_threshold, r.ammo_before[1], r.actions[1])}
+            </div>`;
+    }
+
     document.getElementById('replay-round-detail').innerHTML = `
         <div class="round-card">
             <div class="round-header">Round ${r.round} of ${ep.rounds.length}</div>
@@ -80,6 +91,7 @@ function renderReplay() {
                 <span class="label">Beliefs (after)</span>
                 <span>P1: ${r.beliefs_after[0].toFixed(3)} | P2: ${r.beliefs_after[1].toFixed(3)}</span>
             </div>
+            ${explanationHtml}
         </div>
     `;
 
@@ -96,10 +108,39 @@ function renderReplay() {
         if (rd.outcome === 'P1Win') dot.classList.add('p1win');
         else if (rd.outcome === 'P2Win') dot.classList.add('p2win');
         else if (rd.outcome === 'Tie') dot.classList.add('tie');
+        else if (rd.outcome === 'Draw') dot.classList.add('draw');
         dot.textContent = rd.round;
         dot.addEventListener('click', () => { replayRound = i; renderReplay(); });
         timeline.appendChild(dot);
     });
+}
+
+function buildExplanation(playerNum, actionProbs, belief, threshold, ammo, action) {
+    const actionNames = { S: 'Shoot', B: 'Block', R: 'Reload' };
+    const chosenName = actionNames[action] || action;
+
+    // Find the highest-probability action (policy recommendation)
+    const sorted = Object.entries(actionProbs)
+        .filter(([, p]) => p > 0.001)
+        .sort((a, b) => b[1] - a[1]);
+    const bestAction = sorted[0][0];
+    const isDeviation = action !== bestAction;
+
+    // Build probability summary for all actions
+    const probParts = sorted
+        .map(([a, p]) => `P(${actionNames[a]})=${p.toFixed(2)}`);
+
+    const chosenProb = (actionProbs[action] || 0).toFixed(2);
+    const deviationTag = isDeviation
+        ? ` <span class="deviation-badge" title="Sampled low-probability action (mixed strategy)">rolled ${chosenProb}</span>`
+        : '';
+
+    const reasoning = `Belief=${belief.toFixed(3)} | ${probParts.join(', ')} &rarr; ${chosenName}${deviationTag}`;
+
+    return `<div class="explanation-row${isDeviation ? ' deviation' : ''}">
+        <span class="label">P${playerNum} Decision</span>
+        <span>${reasoning}</span>
+    </div>`;
 }
 
 function renderBeliefChart() {

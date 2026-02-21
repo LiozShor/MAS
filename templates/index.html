@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
+
 <body>
     <header>
         <h1>Gun-Wall Game Dashboard</h1>
@@ -57,6 +59,11 @@
 
         <div id="sim-stats-table" class="stats-table"></div>
 
+        <div id="computation-log-panel" class="log-panel" style="display:none">
+            <h3 class="log-toggle" id="log-toggle">Computation Log (IBR iterations 1-2)</h3>
+            <div id="computation-log-content" style="display:none"></div>
+        </div>
+
         <div id="sim-replay-cta" class="replay-cta" style="display:none">
             <span class="replay-cta-icon">&#127918;</span>
             <div class="replay-cta-text">
@@ -72,7 +79,9 @@
         <div class="controls">
             <div class="control-group">
                 <label for="replay-ep">Episode #</label>
-                <select id="replay-ep"><option value="">Run simulation first</option></select>
+                <select id="replay-ep">
+                    <option value="">Run simulation first</option>
+                </select>
             </div>
             <button id="btn-replay-prev" class="btn-secondary" disabled>&lt; Prev</button>
             <button id="btn-replay-next" class="btn-secondary" disabled>Next &gt;</button>
@@ -102,25 +111,17 @@
     <!-- ==================== POLICY VIZ TAB ==================== -->
     <section id="tab-policy" class="tab-content">
         <div class="controls">
-            <div class="control-group">
-                <label for="pol-persona">Persona</label>
-                <select id="pol-persona"></select>
-            </div>
-            <div class="control-group">
-                <label for="pol-player">Player</label>
-                <select id="pol-player">
-                    <option value="1">Player 1</option>
-                    <option value="2">Player 2</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label for="pol-ammo">Own Ammo</label>
-                <select id="pol-ammo">
-                    <option value="1">1 (Armed: S vs B)</option>
-                    <option value="0">0 (Unarmed: R vs B)</option>
-                </select>
-            </div>
             <button id="btn-policy" class="btn-primary">Show Policy</button>
+            <div class="control-group">
+                <label for="policy-round">Round</label>
+                <select id="policy-round">
+                    <option value="1" selected>Round 1</option>
+                    <option value="2">Round 2</option>
+                    <option value="3">Round 3</option>
+                    <option value="4">Round 4</option>
+                    <option value="5">Round 5</option>
+                </select>
+            </div>
         </div>
         <div class="controls" style="margin-top: 0; padding-top: 0;">
             <div class="control-group">
@@ -137,8 +138,12 @@
 
         <div id="pol-status" class="status-bar"></div>
 
+        <p id="pol-source-note" class="pol-source-note" style="font-size:0.78rem;color:#8b90a5;margin-bottom:8px;">
+            Tip: Run a simulation first to visualize the actual policies used. Otherwise a fresh solve is performed.
+        </p>
+
         <div class="chart-container chart-wide">
-            <h3>Action Probability vs Belief <em>p</em> (opponent has ammo)</h3>
+            <h3>How Players Adapt to Opponent Threat Level</h3>
             <canvas id="chart-policy"></canvas>
         </div>
     </section>
@@ -197,9 +202,11 @@
     <script src="/static/js/api.js"></script>
     <script src="/static/js/main.js"></script>
     <script src="/static/js/simulation.js"></script>
+    <script src="/static/js/computation-log.js"></script>
     <script src="/static/js/game-canvas.js"></script>
     <script src="/static/js/replay.js"></script>
     <script src="/static/js/policy.js"></script>
     <script src="/static/js/experiment.js"></script>
 </body>
+
 </html>

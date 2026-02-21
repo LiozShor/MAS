@@ -8,7 +8,27 @@ from engine.game import (outcome, ammo_transition,
 from engine.belief import propagate_belief
 
 
-def _sample_action(policy, t, ammo, p):
+def compute_thresholds(policy):
+    """
+    For each (t, ammo), find the belief p where the 'active' action
+    (Shoot for ammo=1, Reload for ammo=0) drops below 0.5.
+    Returns dict: {(t, ammo): threshold_p}
+    """
+    thresholds = {}
+    for t in range(1, T + 1):
+        for ammo in [0, 1]:
+            action_key = 'S' if ammo == 1 else 'R'
+            threshold = 1.0  # default: always active
+            for p_idx in range(N_BELIEFS):
+                probs = policy[t][ammo][p_idx]
+                if probs.get(action_key, 0) < 0.5:
+                    threshold = p_idx * DELTA
+                    break
+            thresholds[(t, ammo)] = round(threshold, 2)
+    return thresholds
+
+
+def _sample_action(policy, t, ammo, p, rng):
     """Sample an action from the policy at (t, ammo, belief p)."""
     p_idx = int(round(p / DELTA))
     p_idx = max(0, min(p_idx, N_BELIEFS - 1))
@@ -20,11 +40,11 @@ def _sample_action(policy, t, ammo, p):
     # Normalize to handle floating point issues
     total = sum(probs)
     if total > 0:
-        probs = [p / total for p in probs]
+        probs = [pr / total for pr in probs]
     else:
         probs = [1.0 / len(actions)] * len(actions)
 
-    return np.random.choice(actions, p=probs)
+    return rng.choice(actions, p=probs)
 
 
 def run_episode(policy1, policy2, rng=None):
@@ -47,10 +67,14 @@ def run_episode(policy1, policy2, rng=None):
     final_outcome = 'Draw'
     term_round = T + 1
 
+    # Precompute thresholds for decision explanations
+    thresholds1 = compute_thresholds(policy1)
+    thresholds2 = compute_thresholds(policy2)
+
     for t in range(1, T + 1):
         # Sample actions
-        u1 = str(_sample_action(policy1, t, a1, p1))
-        u2 = str(_sample_action(policy2, t, a2, p2))
+        u1 = str(_sample_action(policy1, t, a1, p1, rng))
+        u2 = str(_sample_action(policy2, t, a2, p2, rng))
 
         state = (a1, a2)
         o = outcome(state, u1, u2)
@@ -63,6 +87,12 @@ def run_episode(policy1, policy2, rng=None):
         total_r1 += r1
         total_r2 += r2
 
+        # Look up current action probabilities for decision explanation
+        p1_idx = int(round(p1 / DELTA))
+        p1_idx = max(0, min(p1_idx, N_BELIEFS - 1))
+        p2_idx = int(round(p2 / DELTA))
+        p2_idx = max(0, min(p2_idx, N_BELIEFS - 1))
+
         round_info = {
             'round': t,
             'state': list(state),
@@ -71,6 +101,10 @@ def run_episode(policy1, policy2, rng=None):
             'rewards': [r1, r2],
             'beliefs_before': [float(p1), float(p2)],
             'ammo_before': list(state),
+            'p1_action_probs': dict(policy1[t][a1][p1_idx]),
+            'p2_action_probs': dict(policy2[t][a2][p2_idx]),
+            'p1_threshold': thresholds1[(t, a1)],
+            'p2_threshold': thresholds2[(t, a2)],
         }
 
         if is_terminal(o):
@@ -95,6 +129,14 @@ def run_episode(policy1, policy2, rng=None):
 
         a1, a2 = a1_next, a2_next
         p1, p2 = p1_next, p2_next
+
+    # Apply Draw payoff when game times out
+    if final_outcome == 'Draw':
+        draw_pay = outcome_payoff('Draw')
+        total_r1 += draw_pay[0]
+        total_r2 += draw_pay[1]
+        if rounds:
+            rounds[-1]['outcome'] = 'Draw'
 
     return {
         'rounds': rounds,

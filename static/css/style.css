@@ -331,6 +331,7 @@ select:focus, input:focus {
 .timeline-dot.p1win { border-color: var(--green); color: var(--green); }
 .timeline-dot.p2win { border-color: var(--red); color: var(--red); }
 .timeline-dot.tie { border-color: var(--yellow); color: var(--yellow); }
+.timeline-dot.draw { border-color: var(--text-dim); color: var(--text-dim); }
 
 /* ===== Action badges ===== */
 .action-badge {
@@ -562,6 +563,111 @@ select:focus, input:focus {
 #exp-summary-table td:first-child {
     text-align: left;
     font-weight: 500;
+}
+
+/* ===== Computation Log ===== */
+.log-panel {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-top: 16px;
+}
+.log-toggle {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+}
+.log-toggle::before {
+    content: '\25B6';
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 0.7rem;
+    transition: transform 0.2s;
+}
+.log-toggle.open::before {
+    transform: rotate(90deg);
+}
+.log-iteration {
+    margin-bottom: 16px;
+}
+.log-iter-header {
+    font-size: 0.82rem;
+    color: var(--accent-light);
+    margin: 12px 0 6px;
+    font-weight: 600;
+}
+.log-player-block {
+    margin-bottom: 12px;
+}
+.log-player-block h5 {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+.log-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+}
+.log-table th, .log-table td {
+    padding: 4px 8px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+}
+.log-table th {
+    color: var(--text-dim);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    letter-spacing: 0.3px;
+}
+.log-mono {
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 0.72rem;
+}
+
+/* ===== Decision Explanation ===== */
+.decision-explanation {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+}
+.explanation-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.78rem;
+    padding: 3px 0;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    color: var(--text-dim);
+}
+.explanation-row .label {
+    color: var(--accent-light);
+    font-weight: 500;
+    min-width: 100px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.explanation-row strong {
+    color: var(--text);
+}
+.explanation-row.deviation {
+    background: rgba(255, 165, 0, 0.08);
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin: 0 -6px;
+}
+.deviation-badge {
+    display: inline-block;
+    background: rgba(255, 165, 0, 0.25);
+    color: #ffa500;
+    font-size: 0.75em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
 }
 
 @media (max-width: 768px) {

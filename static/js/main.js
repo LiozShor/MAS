@@ -18,9 +18,10 @@ async function loadPersonas() {
     try {
         const personas = await API.getPersonas();
         window.personas = personas;
-        const selects = ['sim-p1', 'sim-p2', 'pol-persona'];
+        const selects = ['sim-p1', 'sim-p2'];
         selects.forEach(id => {
             const el = document.getElementById(id);
+            if (!el) return;
             el.innerHTML = '';
             personas.forEach(p => {
                 const opt = document.createElement('option');
