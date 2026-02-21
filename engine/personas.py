@@ -12,15 +12,15 @@ PERSONAS = {
     'aggressive': {
         'name': 'Aggressive',
         'description': 'Higher reward for winning, lower penalty for losing — risk-seeking.',
-        'weights': (1.6, 0.75, 0.85),  # +60% win sensitivity, -25% loss sensitivity, -15% tie sensitivity
+        'weights': (1.6, 0.75, 0.85), 
     },
     'cautious': {
         'name': 'Cautious',
         'description': 'Higher penalty for losing, lower reward for winning — risk-averse.',
-        'weights': (0.65, 1.50, 1.20),  # -35% win sensitivity, +50% loss sensitivity, +20% tie sensitivity
-    },
-}
+        'weights': (0.65, 1.50, 1.20),  
+    }
 
+}
 
 def get_persona(name):
     """Get persona definition by name."""

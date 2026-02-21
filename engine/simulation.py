@@ -28,26 +28,28 @@ def compute_thresholds(policy):
     return thresholds
 
 
-def _sample_action(policy, t, ammo, p, rng):
-    """Sample an action from the policy at (t, ammo, belief p)."""
+def _greedy_action(q_table, t, ammo, p):
+    """Pick the action with the highest Q-value (truly optimal/greedy)."""
+    p_idx = int(round(p / DELTA))
+    p_idx = max(0, min(p_idx, N_BELIEFS - 1))
+
+    q_values = q_table[t][ammo][p_idx]
+    return max(q_values, key=q_values.get)
+
+
+def _sample_action(policy, t, ammo, p):
+    """Sample an action from the softmax policy distribution (human-like)."""
     p_idx = int(round(p / DELTA))
     p_idx = max(0, min(p_idx, N_BELIEFS - 1))
 
     action_probs = policy[t][ammo][p_idx]
     actions = list(action_probs.keys())
     probs = [action_probs[a] for a in actions]
-
-    # Normalize to handle floating point issues
-    total = sum(probs)
-    if total > 0:
-        probs = [pr / total for pr in probs]
-    else:
-        probs = [1.0 / len(actions)] * len(actions)
-
-    return rng.choice(actions, p=probs)
+    return np.random.choice(actions, p=probs)
 
 
-def run_episode(policy1, policy2, rng=None):
+def run_episode(policy1, policy2, q_table1=None, q_table2=None,
+                optimal_p1=True, optimal_p2=True):
     """
     Run a single episode of the Gun-Wall Game.
 
@@ -57,9 +59,6 @@ def run_episode(policy1, policy2, rng=None):
         'total_rewards': (R1, R2) cumulative
         'termination_round': which round the game ended (or T+1 if draw)
     """
-    if rng is None:
-        rng = np.random.default_rng()
-
     a1, a2 = 0, 0  # both start unarmed
     p1, p2 = INITIAL_BELIEF, INITIAL_BELIEF  # initial beliefs
     total_r1, total_r2 = 0.0, 0.0
@@ -72,9 +71,16 @@ def run_episode(policy1, policy2, rng=None):
     thresholds2 = compute_thresholds(policy2)
 
     for t in range(1, T + 1):
-        # Sample actions
-        u1 = str(_sample_action(policy1, t, a1, p1, rng))
-        u2 = str(_sample_action(policy2, t, a2, p2, rng))
+        # Action selection: per-player greedy (optimal) or stochastic (human-like)
+        if optimal_p1 and q_table1:
+            u1 = str(_greedy_action(q_table1, t, a1, p1))
+        else:
+            u1 = str(_sample_action(policy1, t, a1, p1))
+
+        if optimal_p2 and q_table2:
+            u2 = str(_greedy_action(q_table2, t, a2, p2))
+        else:
+            u2 = str(_sample_action(policy2, t, a2, p2))
 
         state = (a1, a2)
         o = outcome(state, u1, u2)
@@ -106,6 +112,12 @@ def run_episode(policy1, policy2, rng=None):
             'p1_threshold': thresholds1[(t, a1)],
             'p2_threshold': thresholds2[(t, a2)],
         }
+
+        # Attach Q-values for decision explanation
+        if q_table1 is not None:
+            round_info['p1_q_values'] = q_table1[t][a1][p1_idx]
+        if q_table2 is not None:
+            round_info['p2_q_values'] = q_table2[t][a2][p2_idx]
 
         if is_terminal(o):
             round_info['beliefs_after'] = [float(p1), float(p2)]
@@ -146,7 +158,9 @@ def run_episode(policy1, policy2, rng=None):
     }
 
 
-def run_batch(policy1, policy2, n_episodes, seed=None):
+def run_batch(policy1, policy2, n_episodes,
+              q_table1=None, q_table2=None,
+              optimal_p1=True, optimal_p2=True):
     """
     Run N episodes and collect aggregate statistics.
 
@@ -154,7 +168,6 @@ def run_batch(policy1, policy2, n_episodes, seed=None):
         stats: dict with win/loss/tie counts, average rewards, etc.
         episodes: list of episode results (for replay)
     """
-    rng = np.random.default_rng(seed)
     episodes = []
 
     p1_wins = 0
@@ -166,7 +179,10 @@ def run_batch(policy1, policy2, n_episodes, seed=None):
     term_rounds = []
 
     for _ in range(n_episodes):
-        ep = run_episode(policy1, policy2, rng)
+        ep = run_episode(policy1, policy2,
+                         q_table1=q_table1, q_table2=q_table2,
+                         optimal_p1=optimal_p1,
+                         optimal_p2=optimal_p2)
         episodes.append(ep)
 
         if ep['outcome'] == 'P1Win':

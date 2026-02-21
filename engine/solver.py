@@ -28,7 +28,8 @@ def make_uniform_policy():
     return policy
 
 
-def best_response(player, opp_policy, persona_weights=None, log_collector=None):
+def best_response(player, opp_policy, persona_weights=None, log_collector=None,
+                  return_q_table=False):
     """
     Compute the best-response policy for 'player' given opponent's policy,
     using backward induction over the belief grid.
@@ -39,10 +40,12 @@ def best_response(player, opp_policy, persona_weights=None, log_collector=None):
         persona_weights: optional (w_win, w_lose, w_tie) multipliers for outcome payoffs
         log_collector: optional dict with 'target_states' set and 'entries' list
                        to capture Q-values at specific (t, ammo, p_idx) states
+        return_q_table: if True, also return Q[t][ammo][p_idx] = {action: value}
 
     Returns:
         new_policy: best-response policy for this player
         V: value function V[t][ammo][p_idx]
+        q_table: Q-value table (None if return_q_table=False)
     """
     if persona_weights is None:
         persona_weights = (1.0, 1.0, 1.0)
@@ -57,13 +60,20 @@ def best_response(player, opp_policy, persona_weights=None, log_collector=None):
     # New policy to fill in
     new_policy = {}
 
+    # Q-table (only when requested)
+    q_table = {} if return_q_table else None
+
     # Backward induction: t = T down to 1
     for t in range(T, 0, -1):
         new_policy[t] = {}
         V[t] = {0: np.zeros(N_BELIEFS), 1: np.zeros(N_BELIEFS)}
+        if return_q_table:
+            q_table[t] = {}
 
         for own_ammo in [0, 1]:
             new_policy[t][own_ammo] = {}
+            if return_q_table:
+                q_table[t][own_ammo] = {}
             my_actions = legal_actions(own_ammo)
 
             for p_idx in range(N_BELIEFS):
@@ -87,6 +97,11 @@ def best_response(player, opp_policy, persona_weights=None, log_collector=None):
                     action_probs[a] = float(softmax_probs[idx_a])
                 new_policy[t][own_ammo][p_idx] = action_probs
 
+                if return_q_table:
+                    q_table[t][own_ammo][p_idx] = {
+                        a: round(v, 4) for a, v in q_values.items()
+                    }
+
                 # Value = max Q per paper Section 4.2:
                 # V^i_t(a, p) = max_{u^i} Q^i_t(u^i | a, p)
                 V[t][own_ammo][p_idx] = float(np.max(q_arr))
@@ -104,7 +119,7 @@ def best_response(player, opp_policy, persona_weights=None, log_collector=None):
                             'action_probs': dict(action_probs),
                         })
 
-    return new_policy, V
+    return new_policy, V, q_table
 
 
 def _compute_q(player, own_ammo, my_action, t, p, p_idx, opp_policy, V_next,
@@ -285,10 +300,10 @@ def ibr_solve(persona1_weights=None, persona2_weights=None,
             log_p2 = {'target_states': target_states, 'entries': []}
 
         # Simultaneous best response (symmetric — no player-order bias)
-        br1, _ = best_response(1, pi2, persona1_weights,
-                               log_collector=log_p1)
-        br2, _ = best_response(2, pi1, persona2_weights,
-                               log_collector=log_p2)
+        br1, _, _ = best_response(1, pi2, persona1_weights,
+                                  log_collector=log_p1)
+        br2, _, _ = best_response(2, pi1, persona2_weights,
+                                  log_collector=log_p2)
 
         # Damped update per paper Section 6.1:
         # π^i_{k+1} ← (1-α)π^i_k + α BR(π^{-i}_k)
@@ -350,12 +365,20 @@ def ibr_solve(persona1_weights=None, persona2_weights=None,
             pi1, pi2 = sym_pi, sym_pi
 
 
+    # Compute final Q-tables against converged opponent policies
+    _, _, q_table1 = best_response(1, pi2, persona1_weights,
+                                   return_q_table=True)
+    _, _, q_table2 = best_response(2, pi1, persona2_weights,
+                                   return_q_table=True)
+
     return {
         'policy1': pi1,
         'policy2': pi2,
         'iterations': iterations,
         'converged': converged,
         'computation_log': computation_log,
+        'q_table1': q_table1,
+        'q_table2': q_table2,
     }
 
 
