@@ -79,6 +79,8 @@ def simulate():
     n_episodes = data.get('n_episodes', 500)
     n_episodes = max(1, min(n_episodes, 10000))
     include_episodes = data.get('include_episodes', True)
+    optimal_p1 = data.get('optimal_p1', True)
+    optimal_p2 = data.get('optimal_p2', True)
 
     cache_key = (p1_name, p2_name)
 
@@ -93,7 +95,13 @@ def simulate():
     policy1 = solver_result['policy1']
     policy2 = solver_result['policy2']
 
-    stats, episodes = run_batch(policy1, policy2, n_episodes)
+    q_table1 = solver_result.get('q_table1')
+    q_table2 = solver_result.get('q_table2')
+
+    stats, episodes = run_batch(policy1, policy2, n_episodes,
+                                q_table1=q_table1, q_table2=q_table2,
+                                optimal_p1=optimal_p1,
+                                optimal_p2=optimal_p2)
 
     # Store episodes for replay
     _last_episodes[cache_key] = episodes
@@ -107,6 +115,8 @@ def simulate():
         'policy2': policy_to_serializable(policy2),
         'n_beliefs': N_BELIEFS,
         'delta': DELTA,
+        'optimal_p1': optimal_p1,
+        'optimal_p2': optimal_p2,
         'computation_log': solver_result.get('computation_log', []),
     }
     if include_episodes:
