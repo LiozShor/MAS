@@ -24,7 +24,7 @@ OUTCOME_PAYOFF = {
 }
 
 # Draw penalty for solver V[T+1] initialization
-DRAW_PENALTY = 0
+DRAW_PENALTY = -15
 
 # --- Stage utility tables G(state, u1, u2) = (G1, G2) ---
 # State = (a1, a2), keys are (u1, u2)
@@ -61,6 +61,9 @@ IBR_ALPHA = 0.5       # damping factor
 IBR_EPSILON = 1e-4    # convergence tolerance
 IBR_MAX_ITER = 200    # max IBR iterations
 SOFTMAX_BETA = 3.0    # softmax temperature: higher = sharper, lower = smoother
+
+# --- Simulation parameters ---
+SIMULATION_BETA = 0.1 # softer temperature for non-optimal (human-like) play
 
 # --- Simulation defaults ---
 DEFAULT_N_EPISODES = 500

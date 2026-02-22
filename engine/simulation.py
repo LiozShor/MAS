@@ -2,7 +2,7 @@
 Monte Carlo episode runner and batch statistics.
 """
 import numpy as np
-from config import T, INITIAL_BELIEF, DELTA, N_BELIEFS
+from config import T, INITIAL_BELIEF, DELTA, N_BELIEFS, SIMULATION_BETA
 from engine.game import (outcome, ammo_transition,
                          stage_utility, outcome_payoff, is_terminal)
 from engine.belief import propagate_belief
@@ -48,6 +48,28 @@ def _sample_action(policy, t, ammo, p):
     return np.random.choice(actions, p=probs)
 
 
+def _soft_sample_action(q_table, t, ammo, p, beta):
+    """Sample action from Q-values using a softer temperature (human-like noise).
+
+    Unlike _sample_action which uses the solver's pre-computed (sharp) policy,
+    this recomputes a softmax from Q-values with a lower temperature so that
+    non-optimal players actually deviate from greedy play.
+    """
+    p_idx = int(round(p / DELTA))
+    p_idx = max(0, min(p_idx, N_BELIEFS - 1))
+
+    q_values = q_table[t][ammo][p_idx]
+    actions = list(q_values.keys())
+    q_arr = np.array([q_values[a] for a in actions])
+
+    # Softmax with simulation temperature
+    q_shifted = beta * (q_arr - np.max(q_arr))
+    exp_q = np.exp(q_shifted)
+    probs = exp_q / np.sum(exp_q)
+
+    return np.random.choice(actions, p=probs)
+
+
 def run_episode(policy1, policy2, q_table1=None, q_table2=None,
                 optimal_p1=True, optimal_p2=True):
     """
@@ -74,11 +96,15 @@ def run_episode(policy1, policy2, q_table1=None, q_table2=None,
         # Action selection: per-player greedy (optimal) or stochastic (human-like)
         if optimal_p1 and q_table1:
             u1 = str(_greedy_action(q_table1, t, a1, p1))
+        elif q_table1:
+            u1 = str(_soft_sample_action(q_table1, t, a1, p1, SIMULATION_BETA))
         else:
             u1 = str(_sample_action(policy1, t, a1, p1))
 
         if optimal_p2 and q_table2:
             u2 = str(_greedy_action(q_table2, t, a2, p2))
+        elif q_table2:
+            u2 = str(_soft_sample_action(q_table2, t, a2, p2, SIMULATION_BETA))
         else:
             u2 = str(_sample_action(policy2, t, a2, p2))
 
